@@ -22,9 +22,6 @@ The VMS frontend is a responsive Flutter application for viewing and maintaining
 - **Responsive admin interface**
   - Material 3 styling with desktop sidebar navigation and mobile navigation drawer.
   - Dashboard and fleet views adapt to desktop, tablet, and mobile screen sizes.
-- **Demo sign-in**
-  - Includes a local sign-in and logout flow for the prototype.
-  - Authentication is mock-only; credentials are not verified by the backend and this is not production security.
 
 ## Technology Stack
 
@@ -81,9 +78,3 @@ lib/
 test/         Widget and API service tests
 web/          Flutter web entry point and assets
 ```
-
-## Limitations
-
-- Authentication is local demo state and does not provide authorization.
-- The API base URL is currently a source-code constant.
-- CORS and authentication settings must be reviewed and secured before deployment.
