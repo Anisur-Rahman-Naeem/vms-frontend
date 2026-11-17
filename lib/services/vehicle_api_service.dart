@@ -15,7 +15,7 @@ class VehicleApiService extends ChangeNotifier {
   @visibleForTesting
   VehicleApiService.withClient(http.Client client) : _client = client;
 
-  static const String baseUrl = 'http://localhost:8080/api/vehicles';
+  static const String baseUrl = 'https://vms-backend-1-4ofz.onrender.com/api/vehicles';
 
   final http.Client _client;
   List<Vehicle> _vehicles = [];
