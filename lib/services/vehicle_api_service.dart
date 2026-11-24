@@ -9,8 +9,13 @@ import '../models/vehicle.dart';
 class VehicleApiService extends ChangeNotifier {
   VehicleApiService._internal([http.Client? client])
     : _client = client ?? http.Client();
-  static final VehicleApiService _instance = VehicleApiService._internal();
+  static VehicleApiService _instance = VehicleApiService._internal();
   factory VehicleApiService() => _instance;
+
+  @visibleForTesting
+  static void setMockInstance(VehicleApiService service) {
+    _instance = service;
+  }
 
   @visibleForTesting
   VehicleApiService.withClient(http.Client client) : _client = client;

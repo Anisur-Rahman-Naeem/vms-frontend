@@ -46,10 +46,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final maintenance = _vehicleService.maintenanceCount;
         final inTransit = _vehicleService.inTransitCount;
         final electric = _vehicleService.electricCount;
-        final recentVehicles = _vehicleService.vehicles.take(5).toList();
+
+        final is8k = Responsive.is8K(context);
+        final isUltraWide = Responsive.isUltraWide(context);
+        final maxRecent = is8k ? 10 : (isUltraWide ? 8 : 5);
+        final recentVehicles = _vehicleService.vehicles.take(maxRecent).toList();
+
+        final pagePadding = EdgeInsets.all(
+          is8k ? 36.0 : (isUltraWide ? 28.0 : 24.0),
+        );
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: pagePadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -72,6 +80,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _buildRecentVehiclesCard(context, recentVehicles),
                     const SizedBox(height: 20),
                     _buildFleetOverviewCard(context, _vehicleService),
+                  ],
+                ),
+                ultraWide: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 5,
+                      child: _buildRecentVehiclesCard(context, recentVehicles),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 2,
+                      child: _buildFleetOverviewCard(context, _vehicleService),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 2,
+                      child: _buildOperationalReadinessCard(context, _vehicleService),
+                    ),
                   ],
                 ),
                 desktop: Row(
@@ -176,6 +203,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   ) {
     final isDesktop = Responsive.isDesktop(context);
     final isTablet = Responsive.isTablet(context);
+    final isUltraWide = Responsive.isUltraWide(context);
 
     final cards = [
       StatCard(
@@ -213,6 +241,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: AppColors.secondary,
         subtitle: 'Zero emissions vehicles',
       ),
+      if (isUltraWide)
+        StatCard(
+          title: 'Fleet Operational Rate',
+          value: '${(((active + inTransit) / (total == 0 ? 1 : total)) * 100).toStringAsFixed(0)}%',
+          icon: Icons.speed,
+          color: AppColors.secondary,
+          subtitle: '$active active, $inTransit in transit',
+        ),
     ];
 
     if (isDesktop) {
@@ -252,6 +288,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildRecentVehiclesCard(BuildContext context, List<Vehicle> vehicles) {
+    final isUltraWide = Responsive.isUltraWide(context);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -290,74 +328,131 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               )
             else
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  columns: const [
-                    DataColumn(label: Text('Vehicle')),
-                    DataColumn(label: Text('Plate')),
-                    DataColumn(label: Text('Type')),
-                    DataColumn(label: Text('Status')),
-                    DataColumn(label: Text('Mileage')),
-                    DataColumn(label: Text('Actions')),
-                  ],
-                  rows: vehicles.map((v) {
-                    return DataRow(
-                      cells: [
-                        DataCell(
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceMuted,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Icon(
-                                  v.fuelType == FuelType.electric
-                                      ? Icons.electric_car
-                                      : Icons.directions_car,
-                                  size: 18,
-                                  color: AppColors.primary,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                      child: DataTable(
+                        columns: [
+                          const DataColumn(
+                            label: Text('Vehicle'),
+                            columnWidth: IntrinsicColumnWidth(flex: 2.8),
+                          ),
+                          const DataColumn(
+                            label: Text('Plate'),
+                            columnWidth: IntrinsicColumnWidth(flex: 1.4),
+                          ),
+                          const DataColumn(
+                            label: Text('Type'),
+                            columnWidth: IntrinsicColumnWidth(flex: 1.1),
+                          ),
+                          if (isUltraWide) ...[
+                            const DataColumn(
+                              label: Text('Fuel'),
+                              columnWidth: IntrinsicColumnWidth(flex: 1.1),
+                            ),
+                            const DataColumn(
+                              label: Text('Driver'),
+                              columnWidth: IntrinsicColumnWidth(flex: 1.5),
+                            ),
+                            const DataColumn(
+                              label: Text('Department'),
+                              columnWidth: IntrinsicColumnWidth(flex: 1.4),
+                            ),
+                          ],
+                          const DataColumn(
+                            label: Text('Status'),
+                            columnWidth: IntrinsicColumnWidth(flex: 1.2),
+                          ),
+                          const DataColumn(
+                            label: Text('Mileage'),
+                            columnWidth: IntrinsicColumnWidth(flex: 1.1),
+                          ),
+                          const DataColumn(
+                            label: Text('Actions'),
+                            columnWidth: IntrinsicColumnWidth(),
+                          ),
+                        ],
+                        rows: vehicles.map((v) {
+                          return DataRow(
+                            cells: [
+                              DataCell(
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surfaceMuted,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Icon(
+                                        v.fuelType == FuelType.electric
+                                            ? Icons.electric_car
+                                            : Icons.directions_car,
+                                        size: 18,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Flexible(
+                                      child: Text(
+                                        v.fullName,
+                                        style: const TextStyle(fontWeight: FontWeight.w600),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              Text(
-                                v.fullName,
-                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              DataCell(
+                                Text(
+                                  v.licensePlate,
+                                  style: const TextStyle(
+                                    fontFamily: 'monospace',
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              DataCell(Text(v.type.label)),
+                              if (isUltraWide) ...[
+                                DataCell(Text(v.fuelType.label)),
+                                DataCell(
+                                  Text(
+                                    v.assignedDriver.isEmpty
+                                        ? 'Unassigned'
+                                        : v.assignedDriver,
+                                  ),
+                                ),
+                                DataCell(
+                                  Text(
+                                    v.department.isEmpty ? 'Operations' : v.department,
+                                  ),
+                                ),
+                              ],
+                              DataCell(StatusBadge(status: v.status)),
+                              DataCell(Text('${v.mileage} km')),
+                              DataCell(
+                                IconButton(
+                                  tooltip: 'Edit Vehicle',
+                                  icon: const Icon(Icons.edit_outlined, size: 18),
+                                  onPressed: () {
+                                    Navigator.of(context).pushNamed(
+                                      AppRoutes.vehicleEdit,
+                                      arguments: v,
+                                    );
+                                  },
+                                ),
                               ),
                             ],
-                          ),
-                        ),
-                        DataCell(
-                          Text(
-                            v.licensePlate,
-                            style: const TextStyle(
-                              fontFamily: 'monospace',
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        DataCell(Text(v.type.label)),
-                        DataCell(StatusBadge(status: v.status)),
-                        DataCell(Text('${v.mileage} km')),
-                        DataCell(
-                          IconButton(
-                            tooltip: 'Edit Vehicle',
-                            icon: const Icon(Icons.edit_outlined, size: 18),
-                            onPressed: () {
-                              Navigator.of(context).pushNamed(
-                                AppRoutes.vehicleEdit,
-                                arguments: v,
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  );
+                },
               ),
           ],
         ),
@@ -454,6 +549,162 @@ class _DashboardScreenState extends State<DashboardScreen> {
           color: color,
           minHeight: 6,
           borderRadius: BorderRadius.circular(3),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOperationalReadinessCard(BuildContext context, VehicleApiService service) {
+    final total = service.totalVehicles;
+    final active = service.activeCount;
+    final inTransit = service.inTransitCount;
+    final readyCount = active + inTransit;
+    final readinessPct = total == 0 ? 0.0 : (readyCount / total);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Fleet Readiness & Health',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Live readiness and operational metrics',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.statusActive.withValues(alpha: 0.14),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${(readinessPct * 100).toStringAsFixed(0)}%',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.statusActive,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Operational Readiness',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$readyCount of $total vehicles in active service',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildReadinessRow(
+              'Active Operational',
+              active,
+              total,
+              AppColors.statusActive,
+            ),
+            const SizedBox(height: 10),
+            _buildReadinessRow(
+              'In Transit / Routes',
+              inTransit,
+              total,
+              AppColors.statusInTransit,
+            ),
+            const SizedBox(height: 10),
+            _buildReadinessRow(
+              'Maintenance Required',
+              service.maintenanceCount,
+              total,
+              AppColors.statusMaintenance,
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pushNamed(AppRoutes.vehicleRegister);
+                },
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Add Vehicle to Fleet'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReadinessRow(
+    String label,
+    int count,
+    int total,
+    Color color,
+  ) {
+    final double percentage = total == 0 ? 0 : count / total;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+        Text(
+          '$count units (${(percentage * 100).toStringAsFixed(0)}%)',
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
       ],
     );
